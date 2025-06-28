@@ -1,14 +1,15 @@
 # 🚀 Placement Management & Student Portfolio System
 
+
+[![AWS](https://img.shields.io/badge/Cloud-AWS-orange)](https://aws.amazon.com/)
+[![Docker](https://img.shields.io/badge/Container-Docker-blue)](https://www.docker.com/)
+[![MySQL](https://img.shields.io/badge/Database-MySQL-blue)](https://www.mysql.com/)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js-green)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/Frontend-React-61DAFB)](https://reactjs.org/)
 [![Express](https://img.shields.io/badge/Framework-Express-blue)](https://expressjs.com/)
 [![Sequelize](https://img.shields.io/badge/ORM-Sequelize-lightgrey)](https://sequelize.org/)
-[![MySQL](https://img.shields.io/badge/Database-MySQL-blue)](https://www.mysql.com/)
-[![React](https://img.shields.io/badge/Frontend-React-61DAFB)](https://reactjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/CSS-Tailwind%20CSS-teal)](https://tailwindcss.com/)
 [![Vercel](https://img.shields.io/badge/Deployment-Vercel-black)](https://vercel.com/)
-[![Docker](https://img.shields.io/badge/Container-Docker-blue)](https://www.docker.com/)
-[![AWS](https://img.shields.io/badge/Cloud-AWS-orange)](https://aws.amazon.com/)
 
 
 ---
