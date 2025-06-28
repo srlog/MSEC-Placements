@@ -1,0 +1,289 @@
+20250628035521-create-students.js
+'use strict';
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up (queryInterface, Sequelize) {
+    /**
+     * Add altering commands here.
+     *
+     * Example:
+     * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
+     */
+  },
+
+  async down (queryInterface, Sequelize) {
+    /**
+     * Add reverting commands here.
+     *
+     * Example:
+     * await queryInterface.dropTable('users');
+     */
+  }
+};
+
+20250628035524-create-admins.js
+  'use strict';
+
+  const { DataTypes } = require("sequelize");
+  const sequelize = require("../config/db");
+
+  const Admin = sequelize.define(
+    "Admin",
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+        allowNull: false,
+      },
+      name: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+      },
+      email: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        unique: true,
+      },
+      password: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
+    },
+    {
+      tableName: "admins",
+      timestamps: true,
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    }
+  );
+
+  Admin.associate = (models) => {
+    // admins create drives, answer queries, approve journeys, etc.
+    Admin.hasMany(models.PlacementDrive, { foreignKey: "created_by", as: "drives" });
+    Admin.hasMany(models.Query, { foreignKey: "answered_by", as: "answeredQueries" });
+    Admin.hasMany(models.Journey, { foreignKey: "approved_by", as: "approvedJourneys" });
+    Admin.hasMany(models.Comment, { foreignKey: "moderated_by", as: "moderatedComments" });
+  };
+
+  module.exports = Admin;
+
+
+20250628035526-create-companies.js
+'use strict';
+
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/db");
+
+const Company = sequelize.define(
+  "Company",
+  {
+    id:                 { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    name:               { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    website:            { type: DataTypes.STRING(255), allowNull: true },
+    contact_person:     { type: DataTypes.STRING(100), allowNull: true },
+    contact_email:      { type: DataTypes.STRING(255), allowNull: true },
+    eligibility_criteria:{ type: DataTypes.TEXT, allowNull: true },
+  },
+  {
+    tableName: "companies",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  }
+);
+
+Company.associate = (models) => {
+  Company.hasMany(models.PlacementDrive, { foreignKey: "company_id", as: "drives" });
+  Company.hasMany(models.Journey,        { foreignKey: "company_id", as: "journeys" });
+};
+
+module.exports = Company;
+
+
+20250628035529-create-placementDrives.js
+'use strict';
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up (queryInterface, Sequelize) {
+    /**
+     * Add altering commands here.
+     *
+     * Example:
+     * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
+     */
+  },
+
+  async down (queryInterface, Sequelize) {
+    /**
+     * Add reverting commands here.
+     *
+     * Example:
+     * await queryInterface.dropTable('users');
+     */
+  }
+};
+
+20250628035532-create-queries.js
+'use strict';
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up (queryInterface, Sequelize) {
+    /**
+     * Add altering commands here.
+     *
+     * Example:
+     * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
+     */
+  },
+
+  async down (queryInterface, Sequelize) {
+    /**
+     * Add reverting commands here.
+     *
+     * Example:
+     * await queryInterface.dropTable('users');
+     */
+  }
+};
+
+20250628035535-create-journeys.js
+'use strict';
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up (queryInterface, Sequelize) {
+    /**
+     * Add altering commands here.
+     *
+     * Example:
+     * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
+     */
+  },
+
+  async down (queryInterface, Sequelize) {
+    /**
+     * Add reverting commands here.
+     *
+     * Example:
+     * await queryInterface.dropTable('users');
+     */
+  }
+};
+
+20250628035538-create-comments.js
+'use strict';
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up (queryInterface, Sequelize) {
+    await queryInterface.createTable('comments', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER
+      },
+      journey_id: {
+        allowNull: false,
+        type: Sequelize.INTEGER
+      },
+      user_id: {
+        allowNull: false,
+        type: Sequelize.INTEGER
+      },
+      content: {
+        allowNull: false,
+        type: Sequelize.TEXT
+      },
+      moderated_by: {
+        allowNull: true,
+        type: Sequelize.INTEGER
+      },
+      created_at: {
+        allowNull: false,
+        type: Sequelize.DATE
+      },
+      updated_at: {
+        allowNull: false,
+        type: Sequelize.DATE
+      }
+    });
+  },
+
+  async down (queryInterface, Sequelize) {
+    await queryInterface.dropTable('comments');
+  }
+};
+
+
+20250628035541-create-skills.js
+'use strict';
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up (queryInterface, Sequelize) {
+    /**
+     * Add altering commands here.
+     *
+     * Example:
+     * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
+     */
+  },
+
+  async down (queryInterface, Sequelize) {
+    /**
+     * Add reverting commands here.
+     *
+     * Example:
+     * await queryInterface.dropTable('users');
+     */
+  }
+};
+
+20250628035544-create-studentSkills.js
+'use strict';
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up (queryInterface, Sequelize) {
+    /**
+     * Add altering commands here.
+     *
+     * Example:
+     * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
+     */
+  },
+
+  async down (queryInterface, Sequelize) {
+    /**
+     * Add reverting commands here.
+     *
+     * Example:
+     * await queryInterface.dropTable('users');
+     */
+  }
+};
+
+cmb.py
+import os
+
+def combine_files_to_text(directory, output_file):
+    with open(output_file, 'w') as outfile:
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path):
+                with open(file_path, 'r') as infile:
+                    outfile.write(f"{filename}\n")
+                    outfile.write(infile.read())
+                    outfile.write("\n")
+
+# Example usage:
+combine_files_to_text('.', 'output.txt')
+
+
+output.txt
+

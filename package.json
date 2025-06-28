@@ -1,0 +1,26 @@
+{
+  "name": "msec-placement-app",
+  "version": "2.0.0",
+  "description": "Digitalizing the Placement Process in MSEC",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "build": "cd frontend && npm run build",
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && npm run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/srlog/msec_placement_app.git"
+  },
+  "author": "Srinivasan L",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/srlog/msecmsec_placement_app_hub/issues"
+  },
+  "homepage": "https://github.com/srlog/msec_placement_app#readme",
+  "dependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
