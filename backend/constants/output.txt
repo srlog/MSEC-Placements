@@ -1,3 +1,58 @@
+AuthConstants.js
+const AuthConstants = {
+    TokenNotFound: "Token not found in the request",
+    InvalidOrExpiredToken: "Invalid or expired token",
+    AdminOnly: "Access denied. Admins only resource",
+    UserMismatch: "Access denied. Invalid user to perform the action",
+    JwtExpiration: "1h"
+}
+
+module.exports = { AuthConstants };
+cmb.py
+import os
+
+def combine_files_to_text(directory, output_file):
+    with open(output_file, 'w') as outfile:
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path):
+                with open(file_path, 'r') as infile:
+                    outfile.write(f"{filename}\n")
+                    outfile.write(infile.read())
+                    outfile.write("\n")
+
+# Example usage:
+combine_files_to_text('.', 'output.txt')
+
+
+DatabaseConstants.js
+const DatabaseConstants = {
+    ConnectionSuccessful: "Database connection established successfully.",
+    ConnectionFailed: "Error connecting to the database: ",
+    SyncSuccessful: "Database synced.",
+    SyncFailed: "Error syncing database: ",
+    ValidationErrors: {
+        InvalidBookedTickets: "Booked tickets cannot exceed total tickets."
+    }
+}
+
+module.exports.DatabaseConstants = DatabaseConstants;
+HttpStatusCodeConstants.js
+const HttpStatusCodeConstants = {
+    InternalServerError: 500,
+    BadRequest: 400,
+    Unauthorized: 401,
+    Forbidden: 403,
+    NotFound: 404,
+    UnProcessable: 422,
+    Created: 201,
+    Ok: 200
+}
+
+module.exports.HttpStatusCodeConstants = HttpStatusCodeConstants;
+output.txt
+
+ResponseConstants.js
 const ResponseConstants = {
   Admin: {
     SuccessCreation: "Admin created successfully",
@@ -89,7 +144,6 @@ const ResponseConstants = {
     SuccessGetById: "Student fetched successfully",
     SuccessUpdate: "Student updated successfully",
     SuccessDeletion: "Student deleted successfully",
-    SuccessLogin: "Student Login successful",
     Error: {
       NotFound: "Student not found",
       AllFieldsRequired: "All fields are required",
@@ -112,3 +166,16 @@ const ResponseConstants = {
 
 module.exports.ResponseConstants = ResponseConstants;
 
+
+ValidationConstants.js
+const RegisterUserValidationConstants = {
+    NameString: "Name must be a string",
+    NameNotEmpty: "Name should not be null or empty",
+    EmailInvalid: "Email is invalid",
+    PasswordNotEmpty: "Password should not be null or empty",
+    PasswordLength: "Password must be atleast 8 characters"
+}
+
+module.exports = { 
+    RegisterUserValidationConstants
+}

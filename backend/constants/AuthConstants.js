@@ -3,7 +3,8 @@ const AuthConstants = {
     InvalidOrExpiredToken: "Invalid or expired token",
     AdminOnly: "Access denied. Admins only resource",
     UserMismatch: "Access denied. Invalid user to perform the action",
-    JwtExpiration: "1h"
+    JwtExpiration: "1h",
+    UserNotFound: "User not found"
 }
 
 module.exports = { AuthConstants };
