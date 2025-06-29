@@ -24,17 +24,17 @@ app.get("/", (req, res) => {
 app.use("/api/", allRoutes);
 
 // Commented so that, no re-init occurs for database while reload
-// console.log('Syncing database...')
-// syncDb().then(() => {
-//   app.listen(process.env.PORT, () => {
-//     console.log(
-//       `Server is running on port ${process.env.PORT} at http://localhost:${process.env.PORT}`
-//     );
-//   });
-// });
-
-app.listen(process.env.PORT, () => {
-  console.log(
-    `Server is running on port ${process.env.PORT} at http://localhost:${process.env.PORT}`
-  );
+console.log('Syncing database...')
+syncDb().then(() => {
+  app.listen(process.env.PORT, () => {
+    console.log(
+      `Server is running on port ${process.env.PORT} at http://localhost:${process.env.PORT}`
+    );
+  });
 });
+
+// app.listen(process.env.PORT, () => {
+//   console.log(
+//     `Server is running on port ${process.env.PORT} at http://localhost:${process.env.PORT}`
+//   );
+// });

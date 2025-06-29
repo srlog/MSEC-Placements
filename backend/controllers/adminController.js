@@ -24,10 +24,11 @@ const getDashboard = async (req, res) => {
         .json({ message: AuthConstants.AdminOnly });
     }
 
-    const [driveCount, pendingQueryCount, pendingJourneyCount] = await Promise.all([
+    const [driveCount, pendingQueryCount, totalJourneyCount, totalQueryCount] = await Promise.all([
       PlacementDrive.count(),
       Query.count({ where: { public: false, answer: null } }),
-      Journey.count({ where: { approved: false } }),
+      Journey.count(),  
+      Query.count(),
     ]);
 
     return res
@@ -35,7 +36,8 @@ const getDashboard = async (req, res) => {
       .json({
         drives: driveCount,
         pendingQueries: pendingQueryCount,
-        pendingJourneys: pendingJourneyCount,
+        totalJourneys: totalJourneyCount,
+        totalQueries: totalQueryCount
       });
   } catch (error) {
     console.error(error);
@@ -98,5 +100,6 @@ const filterStudents = async (req, res) => {
       .json({ error: ResponseConstants.Student.Error.InternalServerError });
   }
 };
+
 
 module.exports = { getDashboard, filterStudents };

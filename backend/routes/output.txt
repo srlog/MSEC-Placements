@@ -1,0 +1,271 @@
+adminRoutes.js
+const express = require("express");
+const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
+const {
+	getDashboard,
+	filterStudents,
+} = require("../controllers/adminController");
+
+const {
+	createDrive,
+	updateDrive,
+	deleteDrive,
+} = require("../controllers/driveController");
+
+// All admin routes require JWT + admin role check
+router.get("/dashboard", authMiddleware, getDashboard);
+
+router.post("/drives", authMiddleware, createDrive);
+router.put("/drives/:driveId", authMiddleware, updateDrive);
+router.delete("/drives/:driveId", authMiddleware, deleteDrive);
+
+router.get("/students", authMiddleware, filterStudents);
+
+module.exports = router;
+
+authRoutes.js
+const express = require("express");
+const router = express.Router();
+
+const {
+  registerStudent,
+  loginStudent,
+  registerAdmin,
+  loginAdmin
+} = require("../controllers/authController");
+
+// Student registration & login
+router.post("/register", registerStudent);
+router.post("/login", loginStudent);
+
+// Admin login
+router.post("/admin/login", loginAdmin);
+router.post("/admin/register", registerAdmin);
+module.exports = router;
+
+cmb.py
+import os
+
+def combine_files_to_text(directory, output_file):
+    with open(output_file, 'w') as outfile:
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path):
+                with open(file_path, 'r') as infile:
+                    outfile.write(f"{filename}\n")
+                    outfile.write(infile.read())
+                    outfile.write("\n")
+
+# Example usage:
+combine_files_to_text('.', 'output.txt')
+
+
+commentRoutes.js
+const express = require("express");
+const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
+const {
+	getCommentsByJourney,
+	createComment,
+	updateComment,
+	deleteComment,
+} = require("../controllers/commentController");
+
+// List comments on a journey
+router.get(
+	"/journeys/:journeyId/comments",
+	authMiddleware,
+	getCommentsByJourney
+);
+
+// Post a comment
+router.post("/journeys/:journeyId/comments", authMiddleware, createComment);
+
+// Admin edits/moderates a comment
+router.put("/comments/:commentId", authMiddleware, updateComment);
+
+// Delete a comment (owner or admin)
+router.delete("/comments/:commentId", authMiddleware, deleteComment);
+
+module.exports = router;
+
+companyRoutes.js
+const express = require("express");
+const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
+const {
+  getAllCompanies,
+  getCompanyById,
+  createCompany,
+  updateCompany,
+  deleteCompany
+} = require("../controllers/companyController");
+
+// Public routes
+router.get("/all", getAllCompanies);
+router.get("/company/:id", getCompanyById);
+
+// Protected admin routes
+router.post("/company", authMiddleware, createCompany);
+router.put("/company/:id", authMiddleware, updateCompany);
+router.delete("/company/:id", authMiddleware, deleteCompany);
+
+module.exports = router;
+
+driveRoutes.js
+
+const express = require("express");
+const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
+const { getAllDrives, getDriveById } = require("../controllers/driveController");
+
+// These are student‑facing, so protect with auth
+router.get("/drives", authMiddleware, getAllDrives);
+router.get("/drive/:driveId", authMiddleware, getDriveById);
+
+module.exports = router;
+
+index.js
+const express = require("express");
+const router = express.Router();
+
+const authRoutes = require("./authRoutes");
+const studentRoutes = require("./studentRoutes");
+const adminRoutes = require("./adminRoutes");
+const driveRoutes = require("./driveRoutes");
+const portfolioRoutes = require("./portfolioRoutes");
+const queryRoutes = require("./queryRoutes");
+const commentRoutes = require("./commentRoutes");
+const companyRoutes = require("./companyRoutes");
+const journeyRoutes = require("./journeyRoutes");
+
+router.use("/auth", authRoutes);
+router.use("/students", studentRoutes);
+router.use("/admin", adminRoutes);
+router.use("/drives", driveRoutes);
+router.use("/portfolio", portfolioRoutes);
+router.use("/queries", queryRoutes);
+router.use("/comments", commentRoutes);
+router.use("/journeys", journeyRoutes);
+router.use("/companies", companyRoutes);
+
+
+module.exports = router;
+
+journeyRoutes.js
+const express = require("express");
+const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
+const {
+	getJourneysByDrive,
+	createJourney,
+	updateJourney,
+	deleteJourney,
+} = require("../controllers/journeyController");
+
+// List approved journeys
+router.get("/drives/:driveId/journeys", authMiddleware, getJourneysByDrive);
+
+// Create a journey (student)
+router.post("/drives/:driveId/journeys", authMiddleware, createJourney);
+
+// Update a journey (owner or admin)
+router.put("/journeys/:journeyId", authMiddleware, updateJourney);
+
+// Delete a journey (owner or admin)
+router.delete("/journeys/:journeyId", authMiddleware, deleteJourney);
+
+module.exports = router;
+
+output.txt
+
+portfolioRoutes.js
+
+const express = require("express");
+const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
+const {
+  getOwnProfile,
+  getStudentProfile,
+  updateProfile,
+  deleteProfile
+} = require("../controllers/portfolioController");
+
+// Get own profile
+router.get("/portfolio/me", authMiddleware, getOwnProfile);
+
+// Get any student's profile (admin or same student)
+router.get("/portfolio/:studentId", authMiddleware, getStudentProfile);
+
+// Update own profile
+router.put("/portfolio/me", authMiddleware, updateProfile);
+
+// Delete a profile (admin or owner)
+router.delete("/portfolio/:studentId", authMiddleware, deleteProfile);
+
+module.exports = router;
+
+
+queryRoutes.js
+
+const express = require("express");
+const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
+const {
+  getDriveQueries,
+  createQuery,
+  updateQuery,
+  deleteQuery
+} = require("../controllers/queryController");
+
+// List queries for a drive (public or private)
+router.get(
+  "/drives/:driveId/queries",
+  authMiddleware,
+  getDriveQueries
+);
+
+// Post a new query under a drive
+router.post(
+  "/drives/:driveId/queries",
+  authMiddleware,
+  createQuery
+);
+
+// Admin answers/toggles a query
+router.put(
+  "/queries/:queryId",
+  authMiddleware,
+  updateQuery
+);
+
+// Delete a query (admin or owner student)
+router.delete(
+  "/queries/:queryId",
+  authMiddleware,
+  deleteQuery
+);
+
+module.exports = router;
+
+studentRoutes.js
+
+const express = require("express");
+const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
+const { getDashboard } = require("../controllers/studentController");
+
+// All student routes require a valid JWT
+router.get("/students/dashboard", authMiddleware, getDashboard);
+
+module.exports = router;
+

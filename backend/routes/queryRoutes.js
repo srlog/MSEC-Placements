@@ -7,6 +7,7 @@ const {
   getDriveQueries,
   createQuery,
   updateQuery,
+  getAllUnansweredQueries,
   deleteQuery
 } = require("../controllers/queryController");
 
@@ -15,6 +16,13 @@ router.get(
   "/drives/:driveId/queries",
   authMiddleware,
   getDriveQueries
+);
+
+// List all unanswered queries
+router.get(
+  "/unanswered-queries",
+  authMiddleware,
+  getAllUnansweredQueries
 );
 
 // Post a new query under a drive

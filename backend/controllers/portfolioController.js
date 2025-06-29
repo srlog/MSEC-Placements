@@ -45,8 +45,6 @@ const getStudentProfile = async (req, res) => {
   try {
     const { studentId } = req.params;
     
-   
-
     const student = await Student.findByPk(studentId, {
       include: [
         {

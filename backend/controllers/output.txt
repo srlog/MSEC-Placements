@@ -1,0 +1,1919 @@
+adminController.js
+
+const { Op } = require("sequelize");
+const {
+  PlacementDrive,
+  Query,
+  Journey,
+  Student,
+  StudentSkill,
+  Skill,
+} = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants }       = require("../constants/ResponseConstants");
+const { AuthConstants }           = require("../constants/AuthConstants");
+
+/**
+ * GET /admin/dashboard
+ * - Number of drives, pending queries, pending journeys
+ */
+const getDashboard = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const [driveCount, pendingQueryCount, pendingJourneyCount] = await Promise.all([
+      PlacementDrive.count(),
+      Query.count({ where: { public: false, answer: null } }),
+      Journey.count({ where: { approved: false } }),
+    ]);
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({
+        drives: driveCount,
+        pendingQueries: pendingQueryCount,
+        pendingJourneys: pendingJourneyCount,
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Admin.Error.InternalServerError });
+  }
+};
+
+/**
+ * GET /admin/students
+ * Query params: cgpaMin, cgpaMax, skills (comma), arrearsMax, department, year
+ */
+const filterStudents = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { cgpaMin, cgpaMax, skills, arrearsMax, department, year } = req.query;
+
+    const where = {};
+    if (cgpaMin) where.cgpa = { [Op.gte]: parseFloat(cgpaMin) };
+    if (cgpaMax) where.cgpa = { ...(where.cgpa||{}), [Op.lte]: parseFloat(cgpaMax) };
+    if (department) where.department = department;
+    if (year) where.year = year;
+    // arrearsMax not modeled explicitly; skip or add if you have an arrears field
+
+    const include = [];
+    if (skills) {
+      const skillList = skills.split(",").map(s => s.trim());
+      include.push({
+        model: Skill,
+        as: "skills",
+        where: { name: { [Op.in]: skillList } },
+        through: { attributes: ["proof_url","description"] },
+      });
+    } else {
+      include.push({
+        model: Skill,
+        as: "skills",
+        through: { attributes: ["proof_url","description"] },
+      });
+    }
+
+    const students = await Student.findAll({
+      where,
+      include,
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ students });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+module.exports = { getDashboard, filterStudents };
+
+authController.js
+
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
+
+const { Admin, Student } = require("../models/index");
+const { AuthConstants } = require("../constants/AuthConstants");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants } = require("../constants/ResponseConstants");
+const bcrypt = require("bcryptjs");
+
+const registerStudent = async (req, res) => {
+  try {
+    const { reg_no, name, email, password } = req.body;
+    // hash password
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+
+    const student = await Student.create({
+      reg_no,
+      name,
+      email,
+      password: hash,
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({ message: ResponseConstants.Student.SuccessCreation, student });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+const loginStudent = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const student = await Student.findOne({ where: { email } });
+    if (!student) {
+      return res
+        .status(HttpStatusCodeConstants.Unauthorized)
+        .json({ message: AuthConstants.UserNotFound });
+    }
+
+    const valid = await bcrypt.compare(password, student.password);
+    if (!valid) {
+      return res
+        .status(HttpStatusCodeConstants.Unauthorized)
+        .json({ message: AuthConstants.InvalidOrExpiredToken });
+    }
+
+    const payload = { id: student.id, role: "student" };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: AuthConstants.JwtExpiration,
+    });
+
+    return res.status(HttpStatusCodeConstants.Ok).json({
+      message: ResponseConstants.Student.SuccessLogin,
+      token: `Bearer ${token}`,
+      student: {
+        id: student.id,
+        reg_no: student.reg_no,
+        name: student.name,
+        email: student.email,
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+const loginAdmin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const admin = await Admin.findOne({ where: { email } });
+
+    if (!admin) {
+      return res
+        .status(HttpStatusCodeConstants.Unauthorized)
+        .json({ message: AuthConstants.InvalidOrExpiredToken });
+    }
+
+    const valid = await bcrypt.compare(password, admin.password);
+    if (!valid) {
+      return res
+        .status(HttpStatusCodeConstants.Unauthorized)
+        .json({ message: AuthConstants.InvalidOrExpiredToken });
+    }
+
+    const payload = { id: admin.id, role: "admin" };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: AuthConstants.JwtExpiration,
+    });
+
+    return res.status(HttpStatusCodeConstants.Ok).json({
+      message: ResponseConstants.Admin.SuccessGetById,
+      token: `Bearer ${token}`,
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Admin.Error.InternalServerError });
+  }
+};
+
+const registerAdmin = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    // hash password
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+
+    const admin = await Admin.create({
+      name,
+      email,
+      password: hash,
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({ message: ResponseConstants.Admin.SuccessCreation, admin });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Admin.Error.InternalServerError });
+  }
+
+};
+
+module.exports = {
+  registerStudent,
+  loginStudent,
+  loginAdmin,
+  registerAdmin
+};
+
+cmb.py
+import os
+
+def combine_files_to_text(directory, output_file):
+    with open(output_file, 'w') as outfile:
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path):
+                with open(file_path, 'r') as infile:
+                    outfile.write(f"{filename}\n")
+                    outfile.write(infile.read())
+                    outfile.write("\n")
+
+# Example usage:
+combine_files_to_text('.', 'output.txt')
+
+
+commentController.js
+
+const { Comment, Journey, Student, Admin } = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants }       = require("../constants/ResponseConstants");
+const { AuthConstants }           = require("../constants/AuthConstants");
+
+/**
+ * GET /journeys/:journeyId/comments
+ * - Lists all comments on a journey
+ */
+const getCommentsByJourney = async (req, res) => {
+  try {
+    const { journeyId } = req.params;
+
+    const comments = await Comment.findAll({
+      where: { journey_id: journeyId },
+      include: [
+        { model: Student, as: "author", attributes: ["id","name"] },
+        { model: Admin,   as: "moderator", attributes: ["id","name"] }
+      ],
+      order: [["created_at","ASC"]],
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ comments });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Comment.Error.InternalServerError });
+  }
+};
+
+/**
+ * POST /journeys/:journeyId/comments
+ * Body: { content }
+ */
+const createComment = async (req, res) => {
+  try {
+    const { journeyId } = req.params;
+    const { content }   = req.body;
+    const { id: userId }= req.user;
+
+    const journey = await Journey.findByPk(journeyId);
+    if (!journey) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Journey.Error.NotFound });
+    }
+
+    const comment = await Comment.create({
+      journey_id: journeyId,
+      user_id:    userId,
+      content,
+      moderated_by: null
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({
+        message: ResponseConstants.Comment.SuccessCreation,
+        comment
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Comment.Error.InternalServerError });
+  }
+};
+
+/**
+ * PUT /comments/:commentId
+ * Body: { content }
+ * - Admin only (to edit or moderate)
+ */
+const updateComment = async (req, res) => {
+  try {
+    // Admin or Self
+    if (req.user.role !== "admin")  {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { commentId } = req.params;
+    const { content }   = req.body;
+    const adminId       = req.user.id;
+
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Comment.Error.NotFound });
+    }
+
+    comment.content      = content !== undefined ? content : comment.content;
+    comment.moderated_by = adminId;
+    await comment.save();
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({
+        message: ResponseConstants.Comment.SuccessUpdate,
+        comment
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Comment.Error.InternalServerError });
+  }
+};
+
+/**
+ * DELETE /comments/:commentId
+ * - Admin or the comment’s author
+ */
+const deleteComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { id: userId, role } = req.user;
+
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Comment.Error.NotFound });
+    }
+
+    if (role !== "admin" && comment.user_id !== userId) {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.UserMismatch });
+    }
+
+    await comment.destroy();
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ message: ResponseConstants.Comment.SuccessDeletion });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Comment.Error.InternalServerError });
+  }
+};
+
+module.exports = {
+  getCommentsByJourney,
+  createComment,
+  updateComment,
+  deleteComment
+};
+
+companyController.js
+const { Company } = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants }       = require("../constants/ResponseConstants");
+const { AuthConstants }           = require("../constants/AuthConstants");
+
+/**
+ * GET /companies
+ * Public: list all companies
+ */
+const getAllCompanies = async (req, res) => {
+  try {
+    const companies = await Company.findAll({
+      order: [["name", "ASC"]]
+    });
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ companies });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+/**
+ * GET /companies/:id
+ * Public: get one company
+ */
+const getCompanyById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const company = await Company.findByPk(id);
+    if (!company) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Company.Error.NotFound });
+    }
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ company });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+/**
+ * POST /companies
+ * Admin only: create a company
+ */
+const createCompany = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { name, website, contact_person, contact_email, eligibility_criteria } = req.body;
+    const company = await Company.create({
+      name,
+      website,
+      contact_person,
+      contact_email,
+      eligibility_criteria
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({
+        message: ResponseConstants.Company.SuccessCreation,
+        company
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+/**
+ * PUT /companies/:id
+ * Admin only: update a company
+ */
+const updateCompany = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { id } = req.params;
+    const updates = req.body;
+    const company = await Company.findByPk(id);
+
+    if (!company) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Company.Error.NotFound });
+    }
+
+    Object.assign(company, updates);
+    await company.save();
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({
+        message: ResponseConstants.Company.SuccessUpdate,
+        company
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+/**
+ * DELETE /companies/:id
+ * Admin only: delete a company
+ */
+const deleteCompany = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { id } = req.params;
+    const company = await Company.findByPk(id);
+
+    if (!company) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Company.Error.NotFound });
+    }
+
+    await company.destroy();
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ message: ResponseConstants.Company.SuccessDeletion });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+module.exports = {
+  getAllCompanies,
+  getCompanyById,
+  createCompany,
+  updateCompany,
+  deleteCompany
+};
+
+driveController.js
+
+const { PlacementDrive, Company, Query, Journey } = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants } = require("../constants/ResponseConstants");
+const { AuthConstants } = require("../constants/AuthConstants");
+
+const getAllDrives = async (req, res) => {
+  try {
+    const drives = await PlacementDrive.findAll({
+      include: [{ model: Company, as: "company", attributes: ["id","name"] }],
+      order: [['registration_deadline','ASC']]
+    });
+
+    return res.status(HttpStatusCodeConstants.Ok).json({ drives });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.PlacementDrive.Error.InternalServerError });
+  }
+};
+
+const getDriveById = async (req, res) => {
+  try {
+    const { driveId } = req.params;
+    const drive = await PlacementDrive.findByPk(driveId, {
+      include: [
+        { model: Company, as: "company" },
+        {
+          model: Query,
+          as: "queries",
+          where: { public: true },
+          required: false,        // allow drives with no public queries
+          include: [{ 
+            model: require("../models").Student, 
+            as: "author", 
+            attributes: ["id","name"] 
+          }]
+        },
+        {
+          model: Journey,
+          as: "journeys",
+          where: { approved: true },
+          required: false,
+          include: [{ 
+            model: require("../models").Student, 
+            as: "student", 
+            attributes: ["id","name"] 
+          }]
+        }
+      ]
+    });
+
+    if (!drive) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.PlacementDrive.Error.NotFound });
+    }
+
+    return res.status(HttpStatusCodeConstants.Ok).json({ drive });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.PlacementDrive.Error.InternalServerError });
+  }
+};
+
+// POST /drives
+const createDrive = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { company_id,  batch, registration_deadline, test_date, interview_date, location, mode } = req.body;
+    const created_by = req.user.id;
+
+    const drive = await PlacementDrive.create({
+      company_id,
+      batch,
+      registration_deadline,
+      test_date,
+      interview_date,
+      location,
+      mode,
+      created_by
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({
+        message: ResponseConstants.PlacementDrive.SuccessCreation,
+        drive
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.PlacementDrive.Error.InternalServerError });
+  }
+};
+
+// PUT /drives/:driveId
+const updateDrive = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { driveId } = req.params;
+    const updates = req.body;
+
+    const drive = await PlacementDrive.findByPk(driveId);
+    if (!drive) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.PlacementDrive.Error.NotFound });
+    }
+
+    Object.assign(drive, updates);
+    await drive.save();
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({
+        message: ResponseConstants.PlacementDrive.SuccessUpdate,
+        drive
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.PlacementDrive.Error.InternalServerError });
+  }
+};
+
+// DELETE /drives/:driveId
+const deleteDrive = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { driveId } = req.params;
+    const drive = await PlacementDrive.findByPk(driveId);
+    if (!drive) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.PlacementDrive.Error.NotFound });
+    }
+
+    await drive.destroy();
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ message: ResponseConstants.PlacementDrive.SuccessDeletion });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.PlacementDrive.Error.InternalServerError });
+  }
+};
+
+
+module.exports = { getAllDrives, getDriveById, createDrive, updateDrive, deleteDrive };
+
+journeyController.js
+
+const { Journey, PlacementDrive, Student, Admin } = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants }       = require("../constants/ResponseConstants");
+const { AuthConstants }           = require("../constants/AuthConstants");
+
+/**
+ * GET /drives/:driveId/journeys
+ * - Returns only approved journeys
+ */
+const getJourneysByDrive = async (req, res) => {
+  try {
+    const { driveId } = req.params;
+
+    const journeys = await Journey.findAll({
+      where: { drive_id: driveId, approved: true },
+      include: [
+        { model: Student, as: "student", attributes: ["id","name","reg_no"] }
+      ],
+      order: [["created_at","DESC"]],
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ journeys });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Journey.Error.InternalServerError });
+  }
+};
+
+/**
+ * POST /drives/:driveId/journeys
+ * Body: { rounds_json, overall_experience, tips_for_juniors }
+ * - Creates with approved=false by default
+ */
+const createJourney = async (req, res) => {
+  try {
+    const { driveId } = req.params;
+    const { rounds_json, overall_experience, tips_for_juniors } = req.body;
+    const studentId = req.user.id;
+
+    const drive = await PlacementDrive.findByPk(driveId);
+    if (!drive) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.PlacementDrive.Error.NotFound });
+    }
+
+    const journey = await Journey.create({
+      drive_id: driveId,
+      student_id: studentId,
+      rounds_json,
+      overall_experience,
+      tips_for_juniors,
+      approved: false,
+      approved_by: null,
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({
+        message: ResponseConstants.Journey.SuccessCreation,
+        journey
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Journey.Error.InternalServerError });
+  }
+};
+
+/**
+ * PUT /journeys/:journeyId
+ * Body: { rounds_json?, overall_experience?, tips_for_juniors?, approved?, approved_by? }
+ * - Students can edit their own (but not approval fields)
+ * - Admins can approve
+ */
+const updateJourney = async (req, res) => {
+  try {
+    const { journeyId } = req.params;
+    const updates = req.body;
+    const { id: userId, role } = req.user;
+
+    const journey = await Journey.findByPk(journeyId);
+    if (!journey) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Journey.Error.NotFound });
+    }
+
+    // If not admin, ensure student owns it
+    if (role !== "admin" && journey.student_id !== userId) {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.UserMismatch });
+    }
+
+    // Students cannot set approval fields
+    if (role !== "admin") {
+      delete updates.approved;
+      delete updates.approved_by;
+    } else {
+      // If admin, record approver
+      updates.approved_by = userId;
+    }
+
+    Object.assign(journey, updates);
+    await journey.save();
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({
+        message: ResponseConstants.Journey.SuccessUpdate,
+        journey
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Journey.Error.InternalServerError });
+  }
+};
+
+/**
+ * DELETE /journeys/:journeyId
+ * - Admins can delete any; students their own
+ */
+const deleteJourney = async (req, res) => {
+  try {
+    const { journeyId } = req.params;
+    const { id: userId, role } = req.user;
+
+    const journey = await Journey.findByPk(journeyId);
+    if (!journey) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Journey.Error.NotFound });
+    }
+
+    if (role !== "admin" && journey.student_id !== userId) {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.UserMismatch });
+    }
+
+    await journey.destroy();
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ message: ResponseConstants.Journey.SuccessDeletion });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Journey.Error.InternalServerError });
+  }
+};
+
+module.exports = {
+  getJourneysByDrive,
+  createJourney,
+  updateJourney,
+  deleteJourney
+};
+
+output.txt
+adminController.js
+
+const { Op } = require("sequelize");
+const {
+  PlacementDrive,
+  Query,
+  Journey,
+  Student,
+  StudentSkill,
+  Skill,
+} = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants }       = require("../constants/ResponseConstants");
+const { AuthConstants }           = require("../constants/AuthConstants");
+
+/**
+ * GET /admin/dashboard
+ * - Number of drives, pending queries, pending journeys
+ */
+const getDashboard = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const [driveCount, pendingQueryCount, pendingJourneyCount] = await Promise.all([
+      PlacementDrive.count(),
+      Query.count({ where: { public: false, answer: null } }),
+      Journey.count({ where: { approved: false } }),
+    ]);
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({
+        drives: driveCount,
+        pendingQueries: pendingQueryCount,
+        pendingJourneys: pendingJourneyCount,
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Admin.Error.InternalServerError });
+  }
+};
+
+/**
+ * GET /admin/students
+ * Query params: cgpaMin, cgpaMax, skills (comma), arrearsMax, department, year
+ */
+const filterStudents = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { cgpaMin, cgpaMax, skills, arrearsMax, department, year } = req.query;
+
+    const where = {};
+    if (cgpaMin) where.cgpa = { [Op.gte]: parseFloat(cgpaMin) };
+    if (cgpaMax) where.cgpa = { ...(where.cgpa||{}), [Op.lte]: parseFloat(cgpaMax) };
+    if (department) where.department = department;
+    if (year) where.year = year;
+    // arrearsMax not modeled explicitly; skip or add if you have an arrears field
+
+    const include = [];
+    if (skills) {
+      const skillList = skills.split(",").map(s => s.trim());
+      include.push({
+        model: Skill,
+        as: "skills",
+        where: { name: { [Op.in]: skillList } },
+        through: { attributes: ["proof_url","description"] },
+      });
+    } else {
+      include.push({
+        model: Skill,
+        as: "skills",
+        through: { attributes: ["proof_url","description"] },
+      });
+    }
+
+    const students = await Student.findAll({
+      where,
+      include,
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ students });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+module.exports = { getDashboard, filterStudents };
+
+authController.js
+
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
+
+const { Admin, Student } = require("../models/index");
+const { AuthConstants } = require("../constants/AuthConstants");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants } = require("../constants/ResponseConstants");
+const bcrypt = require("bcryptjs");
+
+const registerStudent = async (req, res) => {
+  try {
+    const { reg_no, name, email, password } = req.body;
+    // hash password
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+
+    const student = await Student.create({
+      reg_no,
+      name,
+      email,
+      password: hash,
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({ message: ResponseConstants.Student.SuccessCreation, student });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+const loginStudent = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const student = await Student.findOne({ where: { email } });
+    if (!student) {
+      return res
+        .status(HttpStatusCodeConstants.Unauthorized)
+        .json({ message: AuthConstants.UserNotFound });
+    }
+
+    const valid = await bcrypt.compare(password, student.password);
+    if (!valid) {
+      return res
+        .status(HttpStatusCodeConstants.Unauthorized)
+        .json({ message: AuthConstants.InvalidOrExpiredToken });
+    }
+
+    const payload = { id: student.id, role: "student" };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: AuthConstants.JwtExpiration,
+    });
+
+    return res.status(HttpStatusCodeConstants.Ok).json({
+      message: ResponseConstants.Student.SuccessLogin,
+      token: `Bearer ${token}`,
+      student: {
+        id: student.id,
+        reg_no: student.reg_no,
+        name: student.name,
+        email: student.email,
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+const loginAdmin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const admin = await Admin.findOne({ where: { email } });
+
+    if (!admin) {
+      return res
+        .status(HttpStatusCodeConstants.Unauthorized)
+        .json({ message: AuthConstants.InvalidOrExpiredToken });
+    }
+
+    const valid = await bcrypt.compare(password, admin.password);
+    if (!valid) {
+      return res
+        .status(HttpStatusCodeConstants.Unauthorized)
+        .json({ message: AuthConstants.InvalidOrExpiredToken });
+    }
+
+    const payload = { id: admin.id, role: "admin" };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: AuthConstants.JwtExpiration,
+    });
+
+    return res.status(HttpStatusCodeConstants.Ok).json({
+      message: ResponseConstants.Admin.SuccessGetById,
+      token: `Bearer ${token}`,
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Admin.Error.InternalServerError });
+  }
+};
+
+const registerAdmin = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    // hash password
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+
+    const admin = await Admin.create({
+      name,
+      email,
+      password: hash,
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({ message: ResponseConstants.Admin.SuccessCreation, admin });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Admin.Error.InternalServerError });
+  }
+
+};
+
+module.exports = {
+  registerStudent,
+  loginStudent,
+  loginAdmin,
+  registerAdmin
+};
+
+cmb.py
+import os
+
+def combine_files_to_text(directory, output_file):
+    with open(output_file, 'w') as outfile:
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path):
+                with open(file_path, 'r') as infile:
+                    outfile.write(f"{filename}\n")
+                    outfile.write(infile.read())
+                    outfile.write("\n")
+
+# Example usage:
+combine_files_to_text('.', 'output.txt')
+
+
+commentController.js
+
+const { Comment, Journey, Student, Admin } = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants }       = require("../constants/ResponseConstants");
+const { AuthConstants }           = require("../constants/AuthConstants");
+
+/**
+ * GET /journeys/:journeyId/comments
+ * - Lists all comments on a journey
+ */
+const getCommentsByJourney = async (req, res) => {
+  try {
+    const { journeyId } = req.params;
+
+    const comments = await Comment.findAll({
+      where: { journey_id: journeyId },
+      include: [
+        { model: Student, as: "author", attributes: ["id","name"] },
+        { model: Admin,   as: "moderator", attributes: ["id","name"] }
+      ],
+      order: [["created_at","ASC"]],
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ comments });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Comment.Error.InternalServerError });
+  }
+};
+
+/**
+ * POST /journeys/:journeyId/comments
+ * Body: { content }
+ */
+const createComment = async (req, res) => {
+  try {
+    const { journeyId } = req.params;
+    const { content }   = req.body;
+    const { id: userId }= req.user;
+
+    const journey = await Journey.findByPk(journeyId);
+    if (!journey) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Journey.Error.NotFound });
+    }
+
+    const comment = await Comment.create({
+      journey_id: journeyId,
+      user_id:    userId,
+      content,
+      moderated_by: null
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({
+        message: ResponseConstants.Comment.SuccessCreation,
+        comment
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Comment.Error.InternalServerError });
+  }
+};
+
+/**
+ * PUT /comments/:commentId
+ * Body: { content }
+ * - Admin only (to edit or moderate)
+ */
+const updateComment = async (req, res) => {
+  try {
+    // Admin or Self
+    if (req.user.role !== "admin")  {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { commentId } = req.params;
+    const { content }   = req.body;
+    const adminId       = req.user.id;
+
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Comment.Error.NotFound });
+    }
+
+    comment.content      = content !== undefined ? content : comment.content;
+    comment.moderated_by = adminId;
+    await comment.save();
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({
+        message: ResponseConstants.Comment.SuccessUpdate,
+        comment
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Comment.Error.InternalServerError });
+  }
+};
+
+/**
+ * DELETE /comments/:commentId
+ * - Admin or the comment’s author
+ */
+const deleteComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { id: userId, role } = req.user;
+
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Comment.Error.NotFound });
+    }
+
+    if (role !== "admin" && comment.user_id !== userId) {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.UserMismatch });
+    }
+
+    await comment.destroy();
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ message: ResponseConstants.Comment.SuccessDeletion });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Comment.Error.InternalServerError });
+  }
+};
+
+module.exports = {
+  getCommentsByJourney,
+  createComment,
+  updateComment,
+  deleteComment
+};
+
+companyController.js
+const { Company } = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants }       = require("../constants/ResponseConstants");
+const { AuthConstants }           = require("../constants/AuthConstants");
+
+/**
+ * GET /companies
+ * Public: list all companies
+ */
+const getAllCompanies = async (req, res) => {
+  try {
+    const companies = await Company.findAll({
+      order: [["name", "ASC"]]
+    });
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ companies });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+/**
+ * GET /companies/:id
+ * Public: get one company
+ */
+const getCompanyById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const company = await Company.findByPk(id);
+    if (!company) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Company.Error.NotFound });
+    }
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ company });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+/**
+ * POST /companies
+ * Admin only: create a company
+ */
+const createCompany = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { name, website, contact_person, contact_email, eligibility_criteria } = req.body;
+    const company = await Company.create({
+      name,
+      website,
+      contact_person,
+      contact_email,
+      eligibility_criteria
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({
+        message: ResponseConstants.Company.SuccessCreation,
+        company
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+/**
+ * PUT /companies/:id
+ * Admin only: update a company
+ */
+const updateCompany = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { id } = req.params;
+    const updates = req.body;
+    const company = await Company.findByPk(id);
+
+    if (!company) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Company.Error.NotFound });
+    }
+
+    Object.assign(company, updates);
+    await company.save();
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({
+        message: ResponseConstants.Company.SuccessUpdate,
+        company
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+/**
+ * DELETE /companies/:id
+ * Admin only: delete a company
+ */
+const deleteCompany = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { id } = req.params;
+    const company = await Company.findByPk(id);
+
+    if (!company) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Company.Error.NotFound });
+    }
+
+    await company.destroy();
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ message: ResponseConstants.Company.SuccessDeletion });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Company.Error.InternalServerError });
+  }
+};
+
+module.exports = {
+  getAllCompanies,
+  getCompanyById,
+  createCompany,
+  updateCompany,
+  deleteCompany
+};
+
+driveController.js
+
+portfolioController.js
+
+const { Student, Skill, StudentSkill } = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants }       = require("../constants/ResponseConstants");
+const { AuthConstants }           = require("../constants/AuthConstants");
+
+/**
+ * GET /portfolio/me
+ * Returns logged-in student’s full profile, achievements, and skills.
+ */
+const getOwnProfile = async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.user.id, {
+      include: [
+        {
+          model: Skill,
+          as: "skills",
+          through: { attributes: ["proof_url", "description"] }
+        }
+      ]
+    });
+
+    if (!student) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Student.Error.NotFound });
+    }
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ student });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+/**
+ * GET /portfolio/:studentId
+ * Admin or owning student may view any.
+ */
+const getStudentProfile = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    
+   
+
+    const student = await Student.findByPk(studentId, {
+      include: [
+        {
+          model: Skill,
+          as: "skills",
+          through: { attributes: ["proof_url", "description"] }
+        }
+      ]
+    });
+
+    if (!student) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Student.Error.NotFound });
+    }
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ student });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+/**
+ * PUT /portfolio/me
+ * Updates profile fields for logged-in student.
+ */
+const updateProfile = async (req, res) => {
+  try {
+    const id = req.user.id;
+    const updateFields = [
+      "reg_no","name","gender","fathers_name","date_of_birth",
+      "residential_address","mobile","parents_mobile_no",
+      "aadhar_card_no","department","year","section","cgpa",
+      "bio","portfolio","github_profile","linkedin_profile","profile_picture"
+    ];
+    const data = {};
+    updateFields.forEach(field => {
+      if (req.body[field] !== undefined) data[field] = req.body[field];
+    });
+
+    const student = await Student.findByPk(id);
+    if (!student) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Student.Error.NotFound });
+    }
+
+    await student.update(data);
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ message: ResponseConstants.Student.SuccessUpdate, student });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+/**
+ * DELETE /portfolio/:studentId
+ * Admins can delete any; students can delete own.
+ */
+const deleteProfile = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { id: userId, role } = req.user;
+
+    if (role !== "admin" && userId !== parseInt(studentId)) {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.UserMismatch });
+    }
+
+    const student = await Student.findByPk(studentId);
+    if (!student) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Student.Error.NotFound });
+    }
+
+    await student.destroy();
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ message: ResponseConstants.Student.SuccessDeletion });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+module.exports = {
+  getOwnProfile,
+  getStudentProfile,
+  updateProfile,
+  deleteProfile
+};
+
+queryController.js
+
+const { Query, PlacementDrive, Student, Admin } = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants }   = require("../constants/ResponseConstants");
+const { AuthConstants }       = require("../constants/AuthConstants");
+
+/**
+ * GET /drives/:driveId/queries?public=true|false
+ * - students may only request public=true
+ * - admins may request either
+ */
+const getDriveQueries = async (req, res) => {
+  try {
+    const { driveId } = req.params;
+    let { public: isPublic } = req.query;
+
+    // Only admins can fetch private queries
+    if (isPublic === "false" && req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    // Default to true
+    if (typeof isPublic === "undefined") isPublic = "true";
+
+    const queries = await Query.findAll({
+      where: {
+        drive_id: driveId,
+        public: isPublic === "true",
+      },
+      include: [
+        { model: Student, as: "author", attributes: ["id","name","email"] },
+        { model: Admin,   as: "responder", attributes: ["id","name","email"] }
+      ],
+      order: [["created_at", "ASC"]],
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ queries });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Query.Error.InternalServerError });
+  }
+};
+
+/**
+ * POST /drives/:driveId/queries
+ * Body: { content }
+ * - creates with public=false by default
+ */
+const createQuery = async (req, res) => {
+  try {
+    const { driveId } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id;
+
+    const drive = await PlacementDrive.findByPk(driveId);
+    if (!drive) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.PlacementDrive.Error.NotFound });
+    }
+
+    const query = await Query.create({
+      drive_id: driveId,
+      user_id: userId,
+      content,
+      public: false,
+      answered_by: null,
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Created)
+      .json({
+        message: ResponseConstants.Query.SuccessCreation,
+        query
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Query.Error.InternalServerError });
+  }
+};
+
+/**
+ * PUT /queries/:queryId
+ * Body: { answer, public }
+ * - Admin only
+ */
+const updateQuery = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.AdminOnly });
+    }
+
+    const { queryId } = req.params;
+    const { answer, public: isPublic } = req.body;
+    const adminId = req.user.id;
+
+    const query = await Query.findByPk(queryId);
+    if (!query) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Query.Error.NotFound });
+    }
+
+    query.answer     = answer !== undefined ? answer : query.answer;
+    query.public     = isPublic  !== undefined ? isPublic  : query.public;
+    query.answered_by = adminId;
+    await query.save();
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({
+        message: ResponseConstants.Query.SuccessUpdate,
+        query
+      });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Query.Error.InternalServerError });
+  }
+};
+
+/**
+ * DELETE /queries/:queryId
+ * - Admins can delete any; students can delete own queries
+ */
+const deleteQuery = async (req, res) => {
+  try {
+    const { queryId } = req.params;
+    const userId = req.user.id;
+    const role   = req.user.role;
+
+    const query = await Query.findByPk(queryId);
+    if (!query) {
+      return res
+        .status(HttpStatusCodeConstants.NotFound)
+        .json({ error: ResponseConstants.Query.Error.NotFound });
+    }
+
+    if (role !== "admin" && query.user_id !== userId) {
+      return res
+        .status(HttpStatusCodeConstants.Forbidden)
+        .json({ message: AuthConstants.UserMismatch });
+    }
+
+    await query.destroy();
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ message: ResponseConstants.Query.SuccessDeletion });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Query.Error.InternalServerError });
+  }
+};
+
+module.exports = {
+  getDriveQueries,
+  createQuery,
+  updateQuery,
+  deleteQuery
+};
+
+studentController.js
+
+const { Op } = require("sequelize");
+const { PlacementDrive, Query, Journey, Company } = require("../models");
+const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
+const { ResponseConstants } = require("../constants/ResponseConstants");
+
+const getDashboard = async (req, res) => {
+  try {
+    const today = new Date();
+
+    // 1. Upcoming drives (next 5)
+    const upcomingDrives = await PlacementDrive.findAll({
+      where: { registration_deadline: { [Op.gte]: today } },
+      include: [{ model: Company, as: "company", attributes: ["id","name"] }],
+      order: [['registration_deadline', 'ASC']],
+      limit: 5
+    });
+
+    // 2. Recent public queries (last 5)
+    const recentPublicQueries = await Query.findAll({
+      where: { public: true },
+      include: [{ 
+        model: PlacementDrive, 
+        as: "drive", 
+        attributes: ["id","batch"] 
+      }, {
+        model: require("../models").Student,
+        as: "author",
+        attributes: ["id","name"]
+      }],
+      order: [['created_at','DESC']],
+      limit: 5
+    });
+
+    // 3. Recent approved journeys (last 5)
+    const recentJourneys = await Journey.findAll({
+      where: { approved: true },
+      include: [
+        { model: PlacementDrive, as: "drive", attributes: ["id","batch"] },
+        { model: require("../models").Student, as: "student", attributes: ["id","name"] }
+      ],
+      order: [['created_at','DESC']],
+      limit: 5
+    });
+
+    return res.status(HttpStatusCodeConstants.Ok).json({
+      upcomingDrives,
+      recentPublicQueries,
+      recentJourneys
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Student.Error.InternalServerError });
+  }
+};
+
+module.exports = { getDashboard };
+

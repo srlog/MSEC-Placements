@@ -1,4 +1,3 @@
-
 const express = require("express");
 const router = express.Router();
 
@@ -11,6 +10,8 @@ const queryRoutes = require("./queryRoutes");
 const commentRoutes = require("./commentRoutes");
 const companyRoutes = require("./companyRoutes");
 const journeyRoutes = require("./journeyRoutes");
+const skillsRoutes = require("./skillsRoutes");
+const studentSkillsRoutes = require("./studentSkillsRoutes");
 
 router.use("/auth", authRoutes);
 router.use("/students", studentRoutes);
@@ -21,5 +22,8 @@ router.use("/queries", queryRoutes);
 router.use("/comments", commentRoutes);
 router.use("/journeys", journeyRoutes);
 router.use("/companies", companyRoutes);
+router.use("/skills", skillsRoutes);
+router.use("/student-skills", studentSkillsRoutes);
+
 
 module.exports = router;

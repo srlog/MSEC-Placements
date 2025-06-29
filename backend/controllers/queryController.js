@@ -165,9 +165,34 @@ const deleteQuery = async (req, res) => {
   }
 };
 
+
+const getAllUnansweredQueries = async (req, res) => {
+  try {
+    const queries = await Query.findAll({
+      where: {
+        answered_by: null,
+      },
+      include: [
+        { model: Student, as: "author", attributes: ["id","name","email"] },
+        { model: Admin,   as: "responder", attributes: ["id","name","email"] }
+      ],
+      order: [["created_at", "ASC"]],
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ queries });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Query.Error.InternalServerError });
+  }
+}
 module.exports = {
   getDriveQueries,
   createQuery,
   updateQuery,
-  deleteQuery
+  deleteQuery,
+  getAllUnansweredQueries
 };
