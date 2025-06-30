@@ -6,11 +6,12 @@ const {
 	getSkills,
 	addSkill,
 	deleteSkill,
+	addSkillBulk,
 } = require("../controllers/skillsController");
 
 // List all skills
 router.get("/", authMiddleware, getSkills);
-
+router.post("/bulk", authMiddleware, addSkillBulk);
 // Post a new skill
 router.post("/", authMiddleware, addSkill);
 

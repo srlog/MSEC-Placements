@@ -51,6 +51,30 @@ const addSkill = async (req, res) => {
     }
 };
 
+
+
+
+const addSkillBulk = async (req, res) => {
+    try {
+        const skills = req.body; // Expecting an array of { name, category } objects
+
+        if (!Array.isArray(skills) || skills.length === 0) {
+            return res.status(400).json({ message: "Input must be a non-empty array of skills." });
+        }
+
+        const insertedSkills = await Skill.insertMany(skills);
+
+        return res.status(HttpStatusCodeConstants.Created).json({
+            message: ResponseConstants.SUCCESS,
+            data: insertedSkills,
+        });
+    } catch (error) {
+        return res.status(HttpStatusCodeConstants.InternalServerError).json({
+            message: error.message,
+        });
+    }
+};
+ 
 const deleteSkill = async (req, res) => {
     try {
         const { id } = req.params;
@@ -61,4 +85,4 @@ const deleteSkill = async (req, res) => {
     }
 };
 
-module.exports = { getSkills, addSkill, deleteSkill };
+module.exports = { getSkills, addSkill,addSkillBulk, deleteSkill };
