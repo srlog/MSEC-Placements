@@ -53,11 +53,7 @@ const getDashboard = async (req, res) => {
  */
 const filterStudents = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res
-        .status(HttpStatusCodeConstants.Forbidden)
-        .json({ message: AuthConstants.AdminOnly });
-    }
+
 
     const { cgpaMin, cgpaMax, skills, arrearsMax, department, year } = req.query;
 

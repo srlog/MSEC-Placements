@@ -27,6 +27,8 @@ const Navbar = ({ user }) => {
     window.location.href = '/login';
   };
 
+ 
+
   const studentNavItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
     { path: '/drives', label: 'Drives', icon: Calendar },
@@ -52,12 +54,10 @@ const Navbar = ({ user }) => {
   };
 
   // Don't show navbar on login/register pages or if user is not authenticated
-  if (location.pathname === '/login' || location.pathname === '/register') {
-    return null;
-  }
+  if (!user || !user.role) return null;
 
   return (
-    <div className="p-4">
+    <div className="p-2">
       <nav className="bg-primary-900 shadow-xl border border-gray-800 rounded-2xl">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-16">

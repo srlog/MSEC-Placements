@@ -45,8 +45,8 @@ const DashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50"> 
+         <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <div className="mb-8 bg-gradient-to-r from-primary-900 to-blue-800 rounded-3xl p-8 text-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-10">
@@ -60,16 +60,13 @@ const DashboardPage = () => {
               <Sparkles className="h-8 w-8 text-yellow-300" />
               <h1 className="text-4xl font-bold">Hey {user.name?.split(' ')[0]}!</h1>
             </div>
-            <p className="text-xl text-blue-100 mb-6">Are you ready to get placed? 🚀</p>
+            <p className="text-xl text-blue-100 mb-6">Are you ready to get placed?</p>
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
                 <Target className="h-5 w-5 text-green-300" />
                 <span className="text-sm">Your placement journey starts here</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Trophy className="h-5 w-5 text-yellow-300" />
-                <span className="text-sm">Success awaits</span>
-              </div>
+            
             </div>
           </div>
         </div>
@@ -110,9 +107,7 @@ const DashboardPage = () => {
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <Calendar className="h-6 w-6 text-blue-600" />
-                </div>
+              
                 <h2 className="text-xl font-semibold text-gray-900">Upcoming Drives</h2>
               </div>
               <Link 
@@ -130,7 +125,6 @@ const DashboardPage = () => {
                 </div>
               )) || (
                 <div className="text-center py-8">
-                  <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">No upcoming drives</p>
                   <p className="text-sm text-gray-400 mt-1">Check back later for new opportunities</p>
                 </div>
@@ -168,9 +162,7 @@ const DashboardPage = () => {
         <div className="mt-8 bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <div className="bg-purple-100 p-2 rounded-lg">
-                <BookOpen className="h-6 w-6 text-purple-600" />
-              </div>
+
               <h2 className="text-xl font-semibold text-gray-900">Recent Journey Entries</h2>
             </div>
           </div>

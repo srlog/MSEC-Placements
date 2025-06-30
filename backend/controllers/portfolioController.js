@@ -85,6 +85,7 @@ const updateProfile = async (req, res) => {
       "aadhar_card_no","department","year","section","cgpa",
       "bio","portfolio","github_profile","linkedin_profile","profile_picture"
     ];
+    
     const data = {};
     updateFields.forEach(field => {
       if (req.body[field] !== undefined) data[field] = req.body[field];

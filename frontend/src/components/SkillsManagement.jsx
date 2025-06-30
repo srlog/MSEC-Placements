@@ -106,6 +106,7 @@ const SkillsManagement = ({ studentSkills = [], onSkillsUpdate }) => {
 
   const getSkillName = (skillId) => {
     const skill = availableSkills.find(s => s.id === skillId);
+
     return skill ? skill.name : 'Unknown Skill';
   };
 
@@ -193,7 +194,7 @@ const SkillsManagement = ({ studentSkills = [], onSkillsUpdate }) => {
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     <h4 className="font-medium text-gray-900">
-                      {getSkillName(skill.skill_id)}
+                       {skill.name}
                     </h4>
                     {skill.proof_url && (
                       <a

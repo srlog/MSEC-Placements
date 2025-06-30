@@ -69,7 +69,7 @@ const createQuery = async (req, res) => {
       drive_id: driveId,
       user_id: userId,
       content,
-      public: false,
+      public: true,
       answered_by: null,
     });
 

@@ -76,7 +76,7 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        {isAuthenticated && <Navbar user={user} />}
+  <Navbar user={user} />
         
         <Routes>
           {/* Public Routes */}

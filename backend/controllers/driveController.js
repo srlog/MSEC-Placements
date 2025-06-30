@@ -29,7 +29,6 @@ const getDriveById = async (req, res) => {
         {
           model: Query,
           as: "queries",
-          where: { public: true },
           required: false,        // allow drives with no public queries
           include: [{ 
             model: require("../models").Student, 
