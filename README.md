@@ -1,4 +1,4 @@
-# 🚀 Placement Management & Student Portfolio System
+# Placement Management & Student Portfolio System
 
 
 [![AWS](https://img.shields.io/badge/Cloud-AWS-orange)](https://aws.amazon.com/)
@@ -9,53 +9,53 @@
 [![Express](https://img.shields.io/badge/Framework-Express-blue)](https://expressjs.com/)
 [![Sequelize](https://img.shields.io/badge/ORM-Sequelize-lightgrey)](https://sequelize.org/)
 [![Tailwind CSS](https://img.shields.io/badge/CSS-Tailwind%20CSS-teal)](https://tailwindcss.com/)
-[![Vercel](https://img.shields.io/badge/Deployment-Vercel-black)](https://vercel.com/)
 
 
 ---
 
 A **full‑stack web application** to streamline placement drives and student portfolios at MSEC:
 
-* 🗕️ **Placement Drive Updates** — schedule drives, post deadlines & company info
-* 📝 **Student Queries & Journeys** — ask questions, share real‑world interview experiences
-* 🎓 **Student Portfolios** — showcase skills, internships, projects & achievements
-* 🔍 **Admin Tools** — filter & shortlist candidates, export lists, moderate content
+**Placement Drive Updates** — schedule drives, post deadlines & company info
+**Student Queries & Journeys** — ask questions, share real‑world interview experiences
+**Student Portfolios** — showcase skills, internships, projects & achievements
+**Admin Tools** — filter & shortlist candidates, export lists, moderate content
 
 ---
 
 ## 📦 Tech Stack
 
-| Layer          | Technology                  |
-| :------------- | :-------------------------- |
-| **Frontend**   | React ∙ Vite ∙ Tailwind CSS |
-| **API Server** | Node.js ∙ Express           |
-| **ORM**        | Sequelize                   |
-| **Database**   | MySQL                       |
-| **Hosting**    | Vercel (frontend)           |
-| **Auth**       | JWT (HttpOnly cookies)      |
+| Layer          | Technology                      |
+| :------------- | :------------------------------ |
+| **Frontend**   | React ∙ Vite ∙ Tailwind CSS     |
+| **API Server** | Node.js ∙ Express               |
+| **ORM**        | Sequelize                       |
+| **Database**   | MySQL                           |
+| **Hosting**    | AWS (EC2 & S3) ∙ Docker Compose |
+| **Auth**       | JWT                             |
+| **CI/CD**      | GitHub Actions                  |
 
 ---
 
-## 🎯 Features
+##  Features
 
 1. **Student Portal**
 
-   * 🏠 Dashboard: upcoming drives, recent public Q\&A, latest journeys
-   * 📄 Drive Details: registration → test → interview timeline
-   * ❓ Queries: post & view public/private questions per drive
-   * ✍️ Journeys: submit and browse interview experiences
-   * 👤 Profile: edit personal info, upload skills with proof links
+   *  Dashboard: upcoming drives, recent public Q\&A, latest journeys
+   *  Drive Details: registration → test → interview timeline
+   *  Queries: post & view public/private questions per drive
+   *  Journeys: submit and browse interview experiences
+   *  Profile: edit personal info, upload skills with proof links
 
 2. **Admin Dashboard**
 
-   * ➕ Create / update / delete placement drives
-   * ✅ Moderate & publish student queries & journeys
-   * 🔍 Filter students by CGPA, department, year, skills & arrears
-   * 📅 Export shortlisted students as Excel
+   *  Create / update / delete placement drives
+   *  Moderate & publish student queries & journeys
+   *  Filter students by CGPA, department, year, skills & arrears
+   *  Export shortlisted students as Excel
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 ├── backend/
