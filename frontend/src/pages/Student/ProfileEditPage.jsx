@@ -53,7 +53,7 @@ const ProfileEditPage = () => {
           department: student.department || '',
           year: student.year || '',
           section: student.section || '',
-          cgpa: student.cgpa || '',
+          cgpa: parseFloat(student.cgpa) || 0,
           bio: student.bio || '',
           portfolio: student.portfolio || '',
           github_profile: student.github_profile || '',
@@ -109,20 +109,26 @@ const ProfileEditPage = () => {
     { value: 'EEE', label: 'Electrical & Electronics Engineering' },
     { value: 'MECH', label: 'Mechanical Engineering' },
     { value: 'CIVIL', label: 'Civil Engineering' },
-    { value: 'IT', label: 'Information Technology' }
+    { value: 'IT', label: 'Information Technology' },
+    { value: 'AI&DS', label: 'Artificial Intelligence and Data Science' },
   ];
+  const sectionOptions = [
+    { value: 'A', label: 'A' },
+    { value: 'B', label: 'B' },
+    { value: 'Not Applicable', label: 'Not Applicable' },
 
+  ];
   const yearOptions = [
-    { value: '1', label: '1st Year' },
-    { value: '2', label: '2nd Year' },
-    { value: '3', label: '3rd Year' },
-    { value: '4', label: '4th Year' }
+    { value: 'I', label: '1st Year' },
+    { value: 'II', label: '2nd Year' },
+    { value: 'III', label: '3rd Year' },
+    { value: 'IV', label: '4th Year' }
   ];
 
   const genderOptions = [
-    { value: 'Male', label: 'Male' },
-    { value: 'Female', label: 'Female' },
-    { value: 'Other', label: 'Other' }
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'other', label: 'Other' }
   ];
 
   if (loading) {
@@ -251,11 +257,12 @@ const ProfileEditPage = () => {
                       options={yearOptions}
                     />
 
-                    <FormInput
+                    <Select
                       label="Section"
                       name="section"
                       value={profile.section}
                       onChange={handleChange}
+                      options={sectionOptions}
                     />
 
                     <FormInput
