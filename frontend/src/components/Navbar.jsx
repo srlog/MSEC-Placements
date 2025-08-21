@@ -54,7 +54,7 @@ const Navbar = ({ user }) => {
   };
 
   // Don't show navbar on login/register pages or if user is not authenticated
-  if (!user || !user.role) return null;
+  // if (!user || !user.role) return null;
 
   return (
     <div className="p-2">

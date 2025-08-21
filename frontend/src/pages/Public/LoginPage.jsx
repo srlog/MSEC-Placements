@@ -65,9 +65,7 @@ const LoginPage = () => {
 
         <div className="relative z-10 text-center max-w-md">
           <div className="mb-8">
-            <div className="bg-white bg-opacity-20 p-6 rounded-2xl inline-block mb-6">
-              <GraduationCap className="h-20 w-20 text-white" />
-            </div>
+      
             <h1 className="text-6xl font-bold mb-4 leading-tight">
               MSEC
             </h1>
