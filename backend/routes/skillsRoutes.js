@@ -19,3 +19,4 @@ router.post("/", authMiddleware, addSkill);
 router.delete("/:id", authMiddleware, deleteSkill);
 
 module.exports = router;
+ 

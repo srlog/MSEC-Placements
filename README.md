@@ -200,4 +200,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-> Built with ❤️ by the MSEC Dev Team
+> Built with ❤️ by Srinivasan
