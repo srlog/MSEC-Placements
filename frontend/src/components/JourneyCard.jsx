@@ -1,7 +1,7 @@
 import { User, Clock, CheckCircle, XCircle } from 'lucide-react';
 import JourneyRoundsDisplay from './JourneyRoundsDisplay';
 
-const JourneyCard = ({ journey, showActions = false, onApprove }) => {
+const JourneyCard = ({ journey, showActions = false, onApprove, onDelete }) => {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: 'numeric',
@@ -56,7 +56,8 @@ const JourneyCard = ({ journey, showActions = false, onApprove }) => {
         )}
       </div>
 
-      {showActions && !journey.approved && (
+        <div className="flex gap-4">
+               {showActions && !journey.approved && (
         <div className="flex justify-end mt-6 pt-4 border-t border-gray-200">
           <button
             onClick={() => onApprove(journey)}
@@ -66,6 +67,21 @@ const JourneyCard = ({ journey, showActions = false, onApprove }) => {
           </button>
         </div>
       )}
+
+      {showActions && (
+        <div className="flex justify-end mt-6 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => onDelete(journey)}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+          >
+            Delete Journey
+          </button>
+        </div>
+      )}
+        </div>
+   
+
+      
 
       <div className="flex justify-end mt-4 pt-4 border-t border-gray-200">
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${

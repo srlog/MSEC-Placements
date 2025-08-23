@@ -30,7 +30,28 @@ const getJourneysByDrive = async (req, res) => {
       .json({ error: ResponseConstants.Journey.Error.InternalServerError });
   }
 };
+const getAllJourneysByDrive = async (req, res) => {
+  try {
+    const { driveId } = req.params;
 
+    const journeys = await Journey.findAll({
+      where: { drive_id: driveId },
+      include: [
+        { model: Student, as: "student", attributes: ["id","name","reg_no"] }
+      ],
+      order: [["created_at","DESC"]],
+    });
+
+    return res
+      .status(HttpStatusCodeConstants.Ok)
+      .json({ journeys });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(HttpStatusCodeConstants.InternalServerError)
+      .json({ error: ResponseConstants.Journey.Error.InternalServerError });
+  }
+};
 /**
  * POST /drives/:driveId/journeys
  * Body: { rounds_json, overall_experience, tips_for_juniors }
@@ -146,7 +167,8 @@ const deleteJourney = async (req, res) => {
         .status(HttpStatusCodeConstants.Forbidden)
         .json({ message: AuthConstants.UserMismatch });
     }
-
+    
+    await Comment.destroy({ where: { journey_id: id } });
     await journey.destroy();
     return res
       .status(HttpStatusCodeConstants.Ok)
@@ -161,6 +183,7 @@ const deleteJourney = async (req, res) => {
 
 module.exports = {
   getJourneysByDrive,
+  getAllJourneysByDrive,
   createJourney,
   updateJourney,
   deleteJourney

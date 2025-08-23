@@ -4,6 +4,10 @@ export const fetchJourneysByDrive = async (driveId) => {
   const response = await axios.get(`/journeys/drives/${driveId}/journeys`);
   return response.data;
 };
+export const fetchAllJourneysByDrive = async (driveId) => {
+  const response = await axios.get(`/journeys/drives/${driveId}/all/journeys`);
+  return response.data;
+};
 
 export const createJourney = async (driveId, journeyData) => {
   const response = await axios.post(`/journeys/drives/${driveId}/journeys`, journeyData);

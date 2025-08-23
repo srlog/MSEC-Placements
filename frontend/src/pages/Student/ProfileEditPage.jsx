@@ -104,13 +104,13 @@ const ProfileEditPage = () => {
   };
 
   const departmentOptions = [
-    { value: 'CSE', label: 'Computer Science & Engineering' },
-    { value: 'ECE', label: 'Electronics & Communication Engineering' },
-    { value: 'EEE', label: 'Electrical & Electronics Engineering' },
+    
+    { value: 'IT', label: 'IT' },
+    { value: 'CSE', label: 'CSE' },
+    { value: 'ECE', label: 'ECE' },
+    { value: 'EEE', label: 'EEE' },
     { value: 'MECH', label: 'Mechanical Engineering' },
     { value: 'CIVIL', label: 'Civil Engineering' },
-    { value: 'IT', label: 'Information Technology' },
-    { value: 'AI&DS', label: 'Artificial Intelligence and Data Science' },
   ];
   const sectionOptions = [
     { value: 'A', label: 'A' },

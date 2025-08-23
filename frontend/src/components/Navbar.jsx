@@ -12,7 +12,8 @@ import {
   MessageCircle,
   BookOpen,
   BarChart3,
-  Wrench
+  Wrench, 
+  Building
 } from 'lucide-react';
 import { logout } from '../services/authService';
 
@@ -27,8 +28,6 @@ const Navbar = ({ user }) => {
     window.location.href = '/login';
   };
 
- 
-
   const studentNavItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
     { path: '/drives', label: 'Drives', icon: Calendar },
@@ -39,6 +38,7 @@ const Navbar = ({ user }) => {
   const adminNavItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: Home },
     { path: '/admin/drives', label: 'Manage Drives', icon: Calendar },
+    { path: '/admin/companies', label:'Companies', icon:Building},
     { path: '/admin/queries', label: 'Queries', icon: MessageCircle },
     { path: '/admin/students', label: 'Students', icon: Users },
     { path: '/admin/skills', label: 'Skills', icon: Wrench },
@@ -57,29 +57,31 @@ const Navbar = ({ user }) => {
   // if (!user || !user.role) return null;
 
   return (
-    <div className="p-2">
-      <nav className="bg-primary-900 shadow-xl border border-gray-800 rounded-2xl">
-        <div className="container mx-auto px-6">
-          <div className="flex justify-between items-center h-16">
+    <div className="p-1">
+      <nav className="bg-primary-900 shadow-md border border-gray-800 rounded-xl">
+        <div className="container mx-auto px-2">
+          <div className="flex justify-between items-center h-12">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3">
-              <div className="bg-white bg-opacity-20 p-2.5 rounded-xl">
-                <BarChart3 className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">MSEC Portal</span>
+            <Link to="/" className="flex items-center space-x-2">
+              <img
+                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRE42PqYdLvnaPSo25OHdjiD0UFxozdVUQiXQ&s"
+                className="h-8 w-8 rounded-sm"
+                alt="logo"
+              />
+              <span className="text-lg font-semibold text-white">MSEC Portal</span>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all duration-200 font-medium ${
+                    className={`flex items-center space-x-2 px-2 py-1 rounded-lg transition-all duration-150 text-sm font-medium ${
                       isActive(item.path)
-                        ? 'bg-white text-primary-900 shadow-lg'
+                        ? 'bg-white text-primary-900 shadow'
                         : 'text-white hover:text-primary-900 hover:bg-white hover:bg-opacity-90'
                     }`}
                   >
@@ -91,14 +93,14 @@ const Navbar = ({ user }) => {
             </div>
 
             {/* User Menu */}
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-2">
               <div className="text-right">
                 <p className="text-sm font-medium text-white">{user.name}</p>
                 <p className="text-xs text-blue-200 capitalize">{user.role}</p>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2.5 text-white hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 rounded-xl transition-all duration-200 font-medium"
+                className="flex items-center space-x-2 px-3 py-1.5 text-white hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 rounded-lg transition-all duration-150 text-sm font-medium"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Logout</span>
@@ -108,15 +110,16 @@ const Navbar = ({ user }) => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-white hover:text-primary-900 hover:bg-white hover:bg-opacity-90"
+              className="md:hidden p-1 rounded-lg text-white hover:text-primary-900 hover:bg-white hover:bg-opacity-90"
+              aria-label="Toggle menu"
             >
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
 
           {/* Mobile Navigation */}
           {isMobileMenuOpen && (
-            <div className="md:hidden py-4 border-t border-blue-800">
+            <div className="md:hidden py-3 border-t border-primary-800">
               <div className="space-y-2">
                 {navItems.map((item) => {
                   const Icon = item.icon;
@@ -125,28 +128,28 @@ const Navbar = ({ user }) => {
                       key={item.path}
                       to={item.path}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${
+                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-150 text-sm font-medium ${
                         isActive(item.path)
                           ? 'bg-white text-primary-900'
                           : 'text-white hover:text-primary-900 hover:bg-white hover:bg-opacity-90'
                       }`}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-4 w-4" />
                       <span>{item.label}</span>
                     </Link>
                   );
                 })}
-                
-                <div className="border-t border-blue-800 pt-4 mt-4">
-                  <div className="px-4 py-2">
+
+                <div className="border-t border-primary-800 pt-3 mt-3">
+                  <div className="px-3 py-1">
                     <p className="text-sm font-medium text-white">{user.name}</p>
                     <p className="text-xs text-blue-200 capitalize">{user.role}</p>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center space-x-3 px-4 py-3 w-full text-left text-white hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 rounded-xl transition-all duration-200 font-medium"
+                    className="flex items-center space-x-3 px-3 py-2 w-full text-left text-white hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 rounded-lg transition-all duration-150 text-sm font-medium"
                   >
-                    <LogOut className="h-5 w-5" />
+                    <LogOut className="h-4 w-4" />
                     <span>Logout</span>
                   </button>
                 </div>

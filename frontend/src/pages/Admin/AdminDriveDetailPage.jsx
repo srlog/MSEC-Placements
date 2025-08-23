@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Calendar, MapPin, Building, Users, MessageCircle, BookOpen, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { fetchDriveById } from '../../services/driveService';
 import { fetchQueriesByDrive, updateQuery } from '../../services/queryService';
-import { fetchJourneysByDrive, updateJourney } from '../../services/journeyService';
+import { fetchAllJourneysByDrive, updateJourney,deleteJourney } from '../../services/journeyService';
 import QueryCard from '../../components/QueryCard';
 import JourneyCard from '../../components/JourneyCard';
 import Textarea from '../../components/Textarea';
@@ -28,7 +28,7 @@ const AdminDriveDetailPage = () => {
         const [driveData, queriesData, journeysData] = await Promise.all([
           fetchDriveById(driveId),
           fetchQueriesByDrive(driveId, false), // Get all queries for admin
-          fetchJourneysByDrive(driveId)
+          fetchAllJourneysByDrive(driveId)
         ]);
 
         setDrive(driveData.drive);
@@ -102,6 +102,17 @@ const AdminDriveDetailPage = () => {
       ));
     } catch (error) {
       setError('Failed to approve journey');
+    }
+  };
+   const handleDeleteJourney = async (journey) => {
+    try {
+      await deleteJourney(journey.id);
+      
+
+    // remove it from local state
+    setJourneys(journeys.filter(j => j.id !== journey.id));
+    } catch (error) {
+      setError('Failed to Delete journey');
     }
   };
 
@@ -218,9 +229,7 @@ const AdminDriveDetailPage = () => {
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
-                  <div className="bg-green-100 p-2 rounded-lg">
-                    <MessageCircle className="h-6 w-6 text-green-600" />
-                  </div>
+ 
                   <h2 className="text-xl font-semibold text-gray-900">Queries Management</h2>
                 </div>
                 <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -293,9 +302,7 @@ const AdminDriveDetailPage = () => {
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
-                <div className="bg-purple-100 p-2 rounded-lg">
-                  <BookOpen className="h-6 w-6 text-purple-600" />
-                </div>
+
                 <h2 className="text-xl font-semibold text-gray-900">Journey Management</h2>
               </div>
               <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -311,6 +318,7 @@ const AdminDriveDetailPage = () => {
                     journey={journey}
                     showActions={true}
                     onApprove={handleApproveJourney}
+                    onDelete={handleDeleteJourney}
                   />
                 ))
               ) : (

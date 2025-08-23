@@ -31,6 +31,8 @@ import AdminDriveDetailPage from "./pages/Admin/AdminDriveDetailPage";
 import UnansweredQueriesPage from "./pages/Admin/UnansweredQueriesPage";
 import StudentShortlistPage from "./pages/Admin/StudentShortlistPage";
 import ManageSkillsPage from "./pages/Admin/ManageSkillsPage";
+import CompanyPage from "./pages/Admin/CompanyPage";
+
 
 // Layout Components
 import Navbar from "./components/Navbar";
@@ -218,6 +220,16 @@ function App() {
 							</MainLayout>
 						}
 					/>
+					<Route
+						path="/admin/companies"
+						element={
+							<MainLayout user={user}>
+								<CompanyPage />
+							</MainLayout>
+						}
+					/>
+					
+					
 					<Route
 						path="/admin/drives/:driveId/edit"
 						element={

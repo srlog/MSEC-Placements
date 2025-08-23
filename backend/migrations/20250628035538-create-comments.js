@@ -11,7 +11,9 @@ module.exports = {
       },
       journey_id: {
         allowNull: false,
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        onDelete: 'CASCADE',  
+        onUpdate: 'CASCADE'
       },
       user_id: {
         allowNull: false,

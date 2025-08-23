@@ -7,10 +7,16 @@ const {
 	createJourney,
 	updateJourney,
 	deleteJourney,
+	getAllJourneysByDrive,
 } = require("../controllers/journeyController");
 
 // List approved journeys
 router.get("/drives/:driveId/journeys", authMiddleware, getJourneysByDrive);
+
+
+router.get("/drives/:driveId/all/journeys", authMiddleware, getAllJourneysByDrive);
+
+
 
 // Create a journey (student)
 router.post("/drives/:driveId/journeys", authMiddleware, createJourney);
