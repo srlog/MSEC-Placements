@@ -1,5 +1,5 @@
 
-const { Journey, PlacementDrive, Student, Admin } = require("../models");
+const { Journey, PlacementDrive, Student, Admin, Comment } = require("../models");
 const { HttpStatusCodeConstants } = require("../constants/HttpStatusCodeConstants");
 const { ResponseConstants }       = require("../constants/ResponseConstants");
 const { AuthConstants }           = require("../constants/AuthConstants");
