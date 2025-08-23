@@ -168,7 +168,7 @@ const deleteJourney = async (req, res) => {
         .json({ message: AuthConstants.UserMismatch });
     }
     
-    await Comment.destroy({ where: { journey_id: id } });
+    await Comment.destroy({ where: { journey_id: journeyId } });
     await journey.destroy();
     return res
       .status(HttpStatusCodeConstants.Ok)
