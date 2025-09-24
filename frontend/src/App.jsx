@@ -43,6 +43,7 @@ function AuthLayout({ children }) {
 }
 
 function MainLayout({ children, user }) {
+
 	return (
 		<>
 			<Navbar user={user} />
@@ -59,6 +60,7 @@ function App() {
 		const initializeAuth = () => {
 			try {
 				const currentUser = getCurrentUser();
+				console.log(currentUser);
 				setUser(currentUser);
 			} catch (error) {
 				console.error("Error initializing auth:", error);
