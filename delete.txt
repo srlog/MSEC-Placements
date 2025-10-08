@@ -1,11 +1,9 @@
-Perfect — let’s update everything neatly 👇
+Perfect 👍 — here’s your final, complete version including the new Udemy certifications, formatted cleanly so you can copy-paste directly into your form or Google Sheet 👇
 
 
 ---
 
 ✅ 1️⃣ Certifications Details (Preferably on C, C++, OOPS, SQL, C#, JAVA)
-
-You can write this in your sheet:
 
 > Getting Started with MongoDB Atlas
 Connecting to a MongoDB Database
@@ -14,8 +12,9 @@ SQL (Intermediate)
 Amazon EC2 Basics
 Infosys Springboard – Full Stack Development (Python, JavaScript, SQL)
 Presidio Launchpad – SERN Bootcamp (Phase 1 Participant, Phase 2 Volunteer)
-HackerRank – Java (Gold Badge)
 Udemy – JavaScript & LLM Integration
+Udemy – Python Bootcamp: Complete Full Stack Development
+HackerRank – Java (Gold Badge)
 
 
 
@@ -23,9 +22,6 @@ Udemy – JavaScript & LLM Integration
 ---
 
 ✅ 2️⃣ Technical Skills (Programming Expertise)
-
-Yes — the list below is fully verified against both your resume and your past project work from chats and GitHub links.
-It reflects exactly what you’ve used in your projects like Learn Ease, Autom, MSEC Placements, and IPL Ticket Booking System.
 
 > Programming Languages: Python, Java, SQL, HTML5, CSS3, JavaScript
 Frameworks & Libraries: React.js, Node.js (Express), Flask
@@ -49,5 +45,5 @@ Soft Skills: Team Leadership, Technical Communication, Problem Solving
 
 ---
 
-Would you like me to make this into a final one-line-per-row version (formatted exactly like how you’d paste into a Google Sheet cell)?
+Would you like me to make this one-line-per-cell format (like how it should appear directly when pasted into the Google Sheet columns)?
 
