@@ -35,7 +35,7 @@ const Navbar = ({ user }) => {
 		{ path: "/students", label: "Students", icon: Users },
 		{ path: "/profile", label: "Profile", icon: User },
 	];
-	console.log(user);
+	// console.log(user);
 
 	const adminNavItems = [
 		{ path: "/admin/dashboard", label: "Dashboard", icon: Home },
@@ -58,7 +58,7 @@ const Navbar = ({ user }) => {
   const user1 = getCurrentUser();
   useEffect( () => {
     // const user = getCurrentUser();
-    console.log(user1);
+    // console.log(user1);
   },[user1])
   
 	const navItems = user1?.role === "admin" ? adminNavItems : studentNavItems;

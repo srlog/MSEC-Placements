@@ -60,7 +60,7 @@ function App() {
 		const initializeAuth = () => {
 			try {
 				const currentUser = getCurrentUser();
-				console.log(currentUser);
+				// console.log(currentUser);
 				setUser(currentUser);
 			} catch (error) {
 				console.error("Error initializing auth:", error);
