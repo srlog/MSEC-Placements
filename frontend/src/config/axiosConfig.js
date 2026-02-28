@@ -2,7 +2,7 @@ import axios from "axios";
 
 const axiosInstance = axios.create({
 	// baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
-	baseURL: "http://56.228.32.4:3000/api",
+	baseURL: "http://13.51.206.100:3000/api",
 	// baseURL: "http://localhost:3000/api",
 	timeout: 10000,
 });
